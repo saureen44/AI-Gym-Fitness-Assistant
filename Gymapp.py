@@ -1,0 +1,150 @@
+import cv2
+import mediapipe as mp
+import numpy as np
+import streamlit as ui
+
+# Configure Streamlit page layout
+ui.set_page_config(page_title="AI Gym Trainer", layout="wide")
+ui.title("🏋️‍♂️ AI Gym Trainer & Form Analyzer")
+ui.sidebar.title("Workout Settings")
+
+# Dropdown selection menu in the sidebar
+workout_mode = ui.sidebar.selectbox(
+    "Choose an Exercise:",
+    ("Bicep Curls", "Pushups", "Squats")
+)
+
+# Reset session metrics when switching exercises
+if "current_exercise" not in ui.session_state or ui.session_state.current_exercise != workout_mode:
+    ui.session_state.current_exercise = workout_mode
+    ui.session_state.counter = 0
+    ui.session_state.stage = "down"
+    ui.session_state.feedback = "Get in position!"
+
+# Real-time metrics layout on main page dashboard
+col1, col2, col3 = ui.columns(3)
+with col1:
+    ui.metric(label="Selected Workout", value=workout_mode)
+with col2:
+    rep_tracker = ui.empty()
+    rep_tracker.metric(label="Repetitions", value=ui.session_state.counter)
+with col3:
+    feedback_tracker = ui.empty()
+    feedback_tracker.metric(label="Form Feedback", value=ui.session_state.feedback)
+
+# Placeholder placeholder to render the processed video stream frames
+frame_placeholder = ui.empty()
+
+# Initialize MediaPipe Pose system
+mp_pose = mp.solutions.pose
+mp_drawing = mp.solutions.drawing_utils
+pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+def calculate_angle(a, b, c):
+    """Calculates the angle at joint B given coordinates A, B, and C."""
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
+    
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+    
+    if angle > 180.0:
+        angle = 360 - angle
+        
+    return angle
+
+# Run Video Capture Loop
+cap = cv2.VideoCapture(0)
+
+# Sidebar shutdown switch
+run_app = ui.sidebar.checkbox("Start Webcam Feed", value=True)
+
+while cap.isOpened() and run_app:
+    ret, frame = cap.read()
+    if not ret:
+        ui.sidebar.error("Webcam hardware not detected.")
+        break
+        
+    # Flip frame horizontally for intuitive mirror view
+    frame = cv2.flip(frame, 1)
+    
+    # Process colors for MediaPipe model engine
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = pose.process(image)
+    
+    # Revert image back to standard RGB for Streamlit element rendering
+    image.flags.writeable = True
+    
+    try:
+        if results.pose_landmarks:
+            landmarks = results.pose_landmarks.landmark
+            
+            # --- CONDITIONAL TRACKING METRICS ACCORDING TO USER DROPDOWN SELECTION ---
+            if workout_mode == "Bicep Curls":
+                # Left Arm tracking
+                shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+                elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
+                wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+                
+                angle = calculate_angle(shoulder, elbow, wrist)
+                
+                # Rule thresholds
+                if angle > 160:
+                    ui.session_state.stage = "down"
+                    ui.session_state.feedback = "Good elongation. Curl up!"
+                if angle < 30 and ui.session_state.stage == "down":
+                    ui.session_state.stage = "up"
+                    ui.session_state.counter += 1
+                    ui.session_state.feedback = "Nice rep! Squeeze at top."
+                    
+            elif workout_mode == "Pushups":
+                # Right Arm profile view tracking
+                shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+                elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+                wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+                hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+                
+                angle = calculate_angle(shoulder, elbow, wrist)
+                hip_angle = calculate_angle(shoulder, hip, [hip[0], hip[1] + 1]) # Spine alignment line
+                
+                if angle < 90:
+                    ui.session_state.stage = "down"
+                    if hip_angle < 150:
+                        ui.session_state.feedback = "Keep back straight! Drop hips."
+                    else:
+                        ui.session_state.feedback = "Excellent depth. Push up!"
+                if angle > 160 and ui.session_state.stage == "down":
+                    ui.session_state.stage = "up"
+                    ui.session_state.counter += 1
+                    
+            elif workout_mode == "Squats":
+                # Right Hip, Knee, and Ankle side view profile
+                hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+                knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+                ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+                
+                angle = calculate_angle(hip, knee, ankle)
+                
+                if angle < 90:
+                    ui.session_state.stage = "down"
+                    ui.session_state.feedback = "Parallel depth achieved!"
+                if angle > 160 and ui.session_state.stage == "down":
+                    ui.session_state.stage = "up"
+                    ui.session_state.counter += 1
+                    ui.session_state.feedback = "Drive upwards through heels."
+            
+            # Draw skeletal frame mapping over the user
+            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+            
+            # Dynamic live interface component state updates
+            rep_tracker.metric(label="Repetitions", value=ui.session_state.counter)
+            feedback_tracker.metric(label="Form Feedback", value=ui.session_state.feedback)
+
+    except Exception as e:
+        pass
+
+    # Push processed video array frame to web layout component placeholder
+    frame_placeholder.image(image, channels="RGB", use_container_width=True)
+
+cap.release()

@@ -1,0 +1,105 @@
+import cv2
+import numpy as np
+import mediapipe as mp
+
+# Initialize MediaPipe Pose components
+mp_pose = mp.solutions.pose
+mp_drawing = mp.solutions.drawing_utils
+pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+def calculate_angle(a, b, c):
+    """
+    Calculates the angle at vertex 'b' given three points a, b, and c.
+    Points are passed as arrays or tuples: [x, y]
+    """
+    a = np.array(a)  # First point (e.g., Hip)
+    b = np.array(b)  # Mid point / Vertex (e.g., Knee)
+    c = np.array(c)  # End point (e.g., Ankle)
+    
+    # Calculate vectors
+    ba = a - b
+    bc = c - b
+    
+    # Calculate cosine of the angle using dot product normalized by magnitudes
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    # Clip value to prevent errors due to floating-point precision
+    cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
+    
+    # Convert radian to degrees
+    angle = np.arccos(cosine_angle)
+    degrees = np.degrees(angle)
+    
+    return round(degrees, 1)
+
+# Start webcam capture (0 is usually the default built-in webcam)
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        print("Ignoring empty camera frame.")
+        continue
+
+    # Flip image horizontally for a mirror-view display, convert BGR to RGB
+    image = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+    image.flags.writeable = False
+    
+    # Process the frame and extract landmarks
+    results = pose.process(image)
+
+    # Convert back to BGR for rendering via OpenCV
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    
+    try:
+        if results.pose_landmarks:
+            landmarks = results.pose_landmarks.landmark
+            
+            # Extract coordinates for the left side (Hip, Knee, Ankle)
+            # MediaPipe normalizes coordinates between 0 and 1; multiply by frame dimensions
+            h, w, _ = image.shape
+            
+            hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x * w,
+                   landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y * h]
+                   
+            knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x * w,
+                    landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y * h]
+                    
+            ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x * w,
+                     landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y * h]
+            
+            # Compute the angle
+            knee_angle = calculate_angle(hip, knee, ankle)
+            
+            # Draw the computed angle value onto the video frame near the knee joint
+            cv2.putText(image, f"{knee_angle} Deg", 
+                        tuple(np.multiply(knee, [1.02, 1]).astype(int)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+            
+            # Simple form logic check (e.g., Squat depth tracking)
+            if knee_angle < 100:
+                cv2.putText(image, "SQUAT DEPTH: GOOD", (30, 50), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            elif knee_angle > 160:
+                cv2.putText(image, "POSITION: STANDING", (30, 50), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # Overlay the digital skeleton tracking lines on the user
+        mp_drawing.draw_landmarks(
+            image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
+            mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
+        )
+               
+    except Exception as e:
+        print(f"Error processing frame: {e}")
+
+    # Display window
+    cv2.imshow('Pose-to-Performance Joint Tracker', image)
+
+    # Break loop cleanly by pressing 'q'
+    if cv2.waitKey(10) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
