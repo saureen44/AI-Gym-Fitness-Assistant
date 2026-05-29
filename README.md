@@ -23,4 +23,6 @@ The Pose-to-Performance Analyzer is an AI-powered computer vision module that tr
 StepFunctionDetails1. CaptureCamera IntegrationUses standard smartphone cameras or webcams to capture movements.2. AnalysisKeypoint MappingIdentifies 33 anatomical landmarks (shoulders, hips, knees, etc.).3. ExecutionPerformance ScoreCalculates joint ranges of motion and tempo to generate a score.
 
 Your AI Gym Recommender and Planner analyzes user data to provide highly customized fitness solutions, recommending nearby gyms in Motera, Ahmedabad, daily workout routines, and progress tracking based on your specific health goals, experience level, and real-time location.
+
+
 <img width="691" height="412" alt="tech spacts" src="https://github.com/user-attachments/assets/8d48e5a4-57ef-4d6b-bfd1-292f407a4783" />
