@@ -20,6 +20,19 @@ A Virtual Gym Buddy uses conversational AI and natural language sentiment analys
 The Pose-to-Performance Analyzer is an AI-powered computer vision module that tracks skeletal movement in real-time. By evaluating joint angles, symmetry, and pacing, the system instantly scores movement efficiency and compiles this data into a comprehensive weekly progress report.Core FeaturesBiomechanical Scoring: Grades movements (like squats or lunges) on a scale of 0 to 100 based on joint angles and form consistency.Real-Time Corrections: Gives audio and visual alerts for form deviations (e.g., "Straighten your back," "Keep knees aligned").Weekly Progress Reports: Summarizes motion efficiency improvements, mobility gains, and areas requiring focus
 
 
+
 StepFunctionDetails1. CaptureCamera IntegrationUses standard smartphone cameras or webcams to capture movements.2. AnalysisKeypoint MappingIdentifies 33 anatomical landmarks (shoulders, hips, knees, etc.).3. ExecutionPerformance ScoreCalculates joint ranges of motion and tempo to generate a score.
 
 Your AI Gym Recommender and Planner analyzes user data to provide highly customized fitness solutions, recommending nearby gyms in Motera, Ahmedabad, daily workout routines, and progress tracking based on your specific health goals, experience level, and real-time location.
+
+<img width="691" height="412" alt="tech spacts" src="https://github.com/user-attachments/assets/271b36ac-b440-4ec7-ba16-12eeaa9beb93" />
+<img width="1359" height="564" alt="gym training results_3" src="https://github.com/user-attachments/assets/a52eff10-b82c-43ce-9b7b-905546459d08" />
+<img width="1354" height="677" alt="gym training results_2" src="https://github.com/user-attachments/assets/4a07b22f-e95f-4a39-b45c-0228d29b38f8" />
+<img width="1361" height="654" alt="Gym training results_1" src="https://github.com/user-attachments/assets/069da8d5-6d3d-412d-b7c1-135f84737b34" />
+<img width="691" height="412" alt="tech spacts" src="https://github.com/user-attachments/assets/be7ec439-4d39-44a6-a54d-d8dc7b2714df" />
+
+
+
+
+
+
