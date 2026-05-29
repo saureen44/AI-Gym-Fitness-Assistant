@@ -1,0 +1,113 @@
+An AI Fitness Habit Tracker leverages behavioral AI to observe your physical activity, sleep patterns, and daily energy levels. It automates your progress logging and adapts workout recommendations to your psychology, preventing drop-off by sending customized, real-time nudges rather than generic reminders
+
+Python code : 
+import streamlit as st
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import random
+
+# --- App Config ---
+st.set_page_config(page_title="AI Habit Tracker", page_icon="🏋️‍♂️", layout="centered")
+
+# --- Session State Initialization ---
+if 'workout_log' not in st.session_state:
+    st.session_state.workout_log = []
+if 'schedule' not in st.session_state:
+    st.session_state.schedule = [
+        {"date": (datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d"), 
+         "workout": w, "completed": False} 
+        for i, w in enumerate(["Chest & Triceps", "Rest Day", "Back & Biceps", "Legs", "Rest Day", "Shoulders", "Cardio"])
+    ]
+
+# --- Behavioral AI Engine ---
+def predict_skip_risk():
+    """
+    Simulates a behavioral AI predicting the likelihood of a user skipping their workout.
+    Returns a probability (0.0 to 1.0) based on logging consistency.
+    """
+    if not st.session_state.workout_log:
+        return 0.1 # Low risk for new users, they are enthusiastic
+        
+    df = pd.DataFrame(st.session_state.workout_log)
+    streak_decay = 0.05 * len(df) # Example behavioral factor
+    last_login_gap = (datetime.now() - pd.to_datetime(df['date'].iloc[-1])).days
+    
+    # Calculate Risk Score
+    risk_score = min(0.95, (last_login_gap * 0.1) + streak_decay)
+    return risk_score
+
+def generate_nudge(risk_level):
+    """Generates an engaging, personality-driven motivational nudge based on risk."""
+    nudges = {
+        "high": "🚨 AI Nudge: You're in the danger zone for skipping! Let's just do a 15-minute home stretch to keep the streak alive. You've got this!",
+        "medium": "⏳ AI Nudge: Missed your last workout? No problem. Let's adapt and do a lighter session today to get back on track.",
+        "low": "🔥 AI Nudge: You're doing amazing! Sticking to your plan today builds the ultimate foundation. Ready to crush your goals?"
+    }
+    if risk_level > 0.7:
+        return nudges["high"]
+    elif risk_level > 0.4:
+        return nudges["medium"]
+    else:
+        return nudges["low"]
+
+def adapt_schedule(risk_level):
+    """Dynamically adjusts the user's schedule if they are at high risk of skipping."""
+    if risk_level > 0.7:
+        # Dynamically push the heavy workout back and insert a rest day/light yoga
+        for task in st.session_state.schedule:
+            if not task["completed"] and "Rest" not in task["workout"]:
+                task["workout"] = f"Light 20-Min Recovery & Stretch (Adapted)"
+                break
+        return True
+    return False
+
+# --- Streamlit UI Layout ---
+st.title("🏋️ Behavioral AI Fitness Tracker")
+st.markdown("Your AI personal trainer analyzing your habits to keep you consistent!")
+
+# --- Sidebar: Behavioral AI Analytics ---
+st.sidebar.header("🤖 AI Risk Analyzer")
+risk_prob = predict_skip_risk()
+st.sidebar.metric("Skip Probability", f"{risk_prob:.0%}")
+
+# Display Nudge
+current_nudge = generate_nudge(risk_prob)
+st.sidebar.info(current_nudge)
+
+# Check for dynamic adaptations
+if adapt_schedule(risk_prob) and random.random() < 0.4: # Randomized for UI demonstration
+    st.sidebar.warning("⚠️ Schedule dynamically adapted for your current engagement level.")
+
+# --- Main Page: Log Workouts ---
+st.header("Log Today's Progress")
+with st.form("log_form"):
+    workout_type = st.selectbox("Select Workout", ["Strength", "Cardio", "Yoga/Stretch", "Rest"])
+    duration = st.slider("Duration (minutes)", 0, 120, 30)
+    notes = st.text_input("How did you feel during/after the workout?")
+    submit_log = st.form_submit_button("Log Workout")
+
+if submit_log:
+    new_log = {"date": datetime.now().strftime("%Y-%m-%d"), "workout": workout_type, "duration": duration, "notes": notes}
+    st.session_state.workout_log.append(new_log)
+    
+    # Mark the oldest uncompleted scheduled workout as done
+    for task in st.session_state.schedule:
+        if not task["completed"]:
+            task["completed"] = True
+            break
+            
+    st.success("Workout logged successfully! Habit streak updated.")
+
+# --- Main Page: View Dynamic Schedule ---
+st.header("Your Adaptive Schedule")
+schedule_df = pd.DataFrame(st.session_state.schedule)
+st.dataframe(schedule_df, use_container_width=True)
+
+# --- Main Page: Workout History ---
+st.header("Workout History")
+if st.session_state.workout_log:
+    log_df = pd.DataFrame(st.session_state.workout_log)
+    st.table(log_df)
+else:
+    st.write("No workouts logged yet. Go get moving!")
