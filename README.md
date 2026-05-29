@@ -1,4 +1,3 @@
-<img width="691" height="412" alt="tech spacts" src="https://github.com/user-attachments/assets/f9a6307b-e082-4274-806d-96ee419fde30" />
 # AI-Gym-Fitness-Assistant : 
 
 The AI Gym &amp; Fitness Assistant aims to revolutionize personal fitness management using Artificial Intelligence. This unified system integrates workout detection, diet planning, behavior tracking, IoT-based smart gym assistance, and conversational AI for motivation and guidance. 
