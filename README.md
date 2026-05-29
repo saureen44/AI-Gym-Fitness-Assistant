@@ -26,3 +26,12 @@ Your AI Gym Recommender and Planner analyzes user data to provide highly customi
 
 
 <img width="691" height="412" alt="tech spacts" src="https://github.com/user-attachments/assets/8d48e5a4-57ef-4d6b-bfd1-292f407a4783" />
+
+
+AI Gym trainer Results ::
+
+
+<img width="1359" height="564" alt="gym training results_3" src="https://github.com/user-attachments/assets/71229ef5-4b95-4e4f-954c-aed13c764ce7" />
+<img width="1354" height="677" alt="gym training results_2" src="https://github.com/user-attachments/assets/fccaf831-ddb2-4636-805f-d31abf27521c" />
+<img width="1361" height="654" alt="Gym training results_1" src="https://github.com/user-attachments/assets/9ed51cc6-efb9-40f6-84fe-934393bab026" />
+
