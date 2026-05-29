@@ -1,0 +1,84 @@
+Building an AI Dietician with Python is entirely achievable using an LLM API (like OpenAI's GPT-4o or Google's Gemini) for the NLP engine, paired with Streamlit or FastAPI for the frontend and routing. [1]
+This comprehensive, step-by-step blueprint outlines how to structure the application using Python and key libraries.
+1. Project Architecture & Core Libraries
+•	NLP & Reasoning: google-genai or openai libraries (to process user preferences, calculate dietary needs, and generate meal plans).
+•	Data Processing: pandas and numpy (to parse nutritional databases and calculate macronutrient ratios).
+•	Backend Framework: FastAPI (for RESTful API creation and managing user requests).
+•	Database: SQLAlchemy + SQLite/PostgreSQL (to store user profiles, grocery lists, and daily logs).
+•	Frontend UI: Streamlit 
+
+Python code : 
+
+import os
+import pandas as pd
+from datetime import datetime
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# 1. Configuration & Setup
+load_dotenv()
+# Replace with your actual API key or set it in a .env file
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+LOG_FILE = "workout_log.csv"
+
+# 2. AI Workout Generator
+def generate_workout_plan(goal, level, equipment):
+    """Generates a personalized workout plan using OpenAI."""
+    prompt = f"Create a simple gym workout plan for a {level} level person whose goal is {goal}. Equipment available: {equipment}. Return only a list of 5 exercises with sets and reps."
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# 3. Gym Log System
+def log_exercise(exercise_name, sets, reps, weight):
+    """Saves workout data to a CSV file."""
+    new_data = {
+        'Date': datetime.now().strftime("%Y-%m-%d"),
+        'Exercise': exercise_name,
+        'Sets': sets,
+        'Reps': reps,
+        'Weight_kg': weight
+    }
+    
+    # Load existing log or create new one
+    if os.path.exists(LOG_FILE):
+        df = pd.read_csv(LOG_FILE)
+    else:
+        df = pd.DataFrame(columns=['Date', 'Exercise', 'Sets', 'Reps', 'Weight_kg'])
+    
+    df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+    df.to_csv(LOG_FILE, index=False)
+    print(f"Successfully logged: {exercise_name}")
+
+# 4. Main Interface
+def main():
+    print("--- AI Workout Buddy ---")
+    choice = input("1. Generate AI Plan\n2. Log Workout\n3. View Progress\nSelect: ")
+
+    if choice == "1":
+        goal = input("Enter goal (e.g., muscle gain, weight loss): ")
+        level = input("Enter level (beginner/intermediate/advanced): ")
+        equip = input("Equipment (e.g., full gym, dumbbells only): ")
+        print("\nGenerating your plan...\n")
+        print(generate_workout_plan(goal, level, equip))
+
+    elif choice == "2":
+        name = input("Exercise Name: ")
+        s = int(input("Sets: "))
+        r = int(input("Reps: "))
+        w = float(input("Weight (kg): "))
+        log_exercise(name, s, r, w)
+
+    elif choice == "3":
+        if os.path.exists(LOG_FILE):
+            print(pd.read_csv(LOG_FILE))
+        else:
+            print("No logs found yet!")
+
+if __name__ == "__main__":
+    main()
+
